@@ -1,0 +1,7 @@
+ROOTDEV	/	btrfs	noatime,compress=zstd,subvol=/@arch_root	0 0
+
+ESPDEV	/boot/esp	vfat	rw	0 2
+
+ROOTDEV	/home	btrfs	noatime,compress=zstd,subvol=/@home	0 0
+
+ROOTDEV	/mnt/btrfs_root	btrfs	subvolid=5	0 0
