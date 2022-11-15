@@ -1,0 +1,4 @@
+parted
+btrfs-progs
+dosfstools
+arch-install-scripts
