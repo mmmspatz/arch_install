@@ -74,7 +74,7 @@ systemctl enable docker.service
 grub-install --target=x86_64-efi --efi-directory=/boot/esp --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
-useradd -m -G adm,wheel,uucp,sys $USER
+useradd -m -G adm,wheel,uucp,sys,docker $USER
 echo "${USER}:${PASSWORD}" | chpasswd
 
 echo '%wheel ALL=(ALL) ALL' > /etc/sudoers.d/wheel
