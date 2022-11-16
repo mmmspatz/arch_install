@@ -70,6 +70,7 @@ systemctl enable gdm.service
 systemctl enable bluetooth.service
 systemctl enable systemd-timesyncd.service
 systemctl enable docker.service
+systemctl enable libvirtd.service
 
 grub-install --target=x86_64-efi --efi-directory=/boot/esp --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
