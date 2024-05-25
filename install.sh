@@ -43,7 +43,7 @@ mkdir "${ROOT}/etc/"
 cp ./fstab "${ROOT}/etc/"
 
 # Bootstrap
-pacstrap "$ROOT" $(<packages.txt)
+pacstrap "$ROOT" base $(find packages.d -exec cat {} + | xargs)
 
 #enable multilib
 cat << EOF >> "${ROOT}/etc/pacman.conf"

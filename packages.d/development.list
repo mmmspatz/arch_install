@@ -1,0 +1,10 @@
+base-devel
+linux-headers
+python
+python-pip
+clang
+rustup
+docker
+git
+git-lfs
+tk
