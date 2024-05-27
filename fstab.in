@@ -1,6 +1,6 @@
 ROOTDEV	/	btrfs	noatime,compress=zstd,subvol=/@arch_root	0 0
 
-ESPDEV	/boot/esp	vfat	rw	0 2
+ESPDEV	/efi	vfat	rw,umask=0077,noexec,nosuid,nodev	0 2
 
 ROOTDEV	/home	btrfs	noatime,compress=zstd,subvol=/@home	0 0
 

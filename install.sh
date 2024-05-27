@@ -42,6 +42,10 @@ mount -a --target-prefix "$ROOT" --fstab ./fstab -o X-mount.mkdir
 mkdir "${ROOT}/etc/"
 cp ./fstab "${ROOT}/etc/"
 
+# Install kernel cmdline
+mkdir "${ROOT}/etc/cmdline.d"
+sed "s/ROOTDEV/UUID=${ROOT_UUID}/g" cmdline.d/root.conf.in > "${ROOT}/etc/cmdline.d/root.conf"
+
 # Bootstrap
 pacstrap "$ROOT" base $(find packages.d -exec cat {} + | xargs)
 
@@ -62,6 +66,16 @@ sed -i '/en_US.UTF-8/s/^#//g' /etc/locale.gen
 locale-gen
 echo LANG=en_US.UTF-8 > /etc/locale.conf
 
+bootctl install
+
+# Use Plymouth for boot splash
+sudo sed -i '/^HOOKS/s/block/& plymouth/' /etc/mkinitcpio.conf
+
+# Enable UKI generation
+sed -i '/^#\(default\|fallback\)_uki/s/^#//g' /etc/mkinitcpio.d/linux.preset
+sed -i '/^\(default\|fallback\)_image/s/^/#/g' /etc/mkinitcpio.d/linux.preset
+mkinitcpio -p linux
+
 echo mspatz-desktop > /etc/hostname
 
 systemctl enable sshd.service
@@ -71,14 +85,21 @@ systemctl enable bluetooth.service
 systemctl enable systemd-timesyncd.service
 systemctl enable docker.service
 systemctl enable libvirtd.service
+systemctl enable power-profiles-daemon.service
 
-grub-install --target=x86_64-efi --efi-directory=/boot/esp --bootloader-id=GRUB
-grub-mkconfig -o /boot/grub/grub.cfg
+systemctl --global enable wireplumber.service
+
+systemctl enable systemd-resolved.service
+ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+
 
 useradd -m -G adm,wheel,uucp,sys,docker $USER
 echo "${USER}:${PASSWORD}" | chpasswd
 
 echo '%wheel ALL=(ALL) ALL' > /etc/sudoers.d/wheel
+
+echo 'export EDITOR=vim' > /etc/profile.d/editor.sh
+chmod +x /etc/profile.d/editor.sh
 
 EOF
 

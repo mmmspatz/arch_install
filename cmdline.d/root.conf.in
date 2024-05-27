@@ -1,0 +1,1 @@
+root=ROOTDEV rw rootflags=subvol=@arch_root quiet splash
