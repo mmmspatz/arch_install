@@ -1,1 +1,1 @@
-root=ROOTDEV rw rootflags=subvol=@arch_root quiet splash
+cryptdevice=CRYPTDEV:cryptroot root=/dev/mapper/cryptroot rw rootflags=subvol=@arch_root quiet splash
