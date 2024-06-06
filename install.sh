@@ -31,7 +31,7 @@ umount "$ROOT"
 
 # Generate fstab
 partprobe
-UUIDS=($(lsblk -np -x PATH -o UUID "$DEV"))
+UUIDS=($(lsblk -np -x PATH -o UUID,TYPE "$DEV" | awk 'NF==2 && $2 == "part" {print $1}'))
 ESP_UUID=${UUIDS[0]}
 ROOT_UUID=${UUIDS[1]}
 sed "s/ESPDEV/UUID=${ESP_UUID}/g;s/ROOTDEV/UUID=${ROOT_UUID}/g" fstab.in > fstab
