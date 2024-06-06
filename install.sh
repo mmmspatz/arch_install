@@ -40,7 +40,7 @@ umount "$ROOT"
 
 # Read partition UUIDs
 partprobe
-UUIDS=($(lsblk -np -x PATH -o UUID "$DEV"))
+UUIDS=($(lsblk -np -x PATH -o UUID,TYPE "$DEV" | awk 'NF==2 && $2 == "part" {print $1}'))
 ESP_UUID=${UUIDS[0]}
 CRYPT_UUID=${UUIDS[1]}
 
