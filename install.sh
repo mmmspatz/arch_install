@@ -11,30 +11,41 @@ read -p "Password: " -s PASSWORD
 # Create partitions
 blkdiscard -f "${DEV}"
 parted --script "${DEV}" mklabel gpt
-parted --script -a optimal "${DEV}" unit MiB mkpart esp fat32 1 513
-parted --script -a optimal "${DEV}" unit MiB mkpart root btrfs 513 100%
+parted --script -a optimal "${DEV}" unit MiB mkpart esp fat32 1 1025
+parted --script -a optimal "${DEV}" unit MiB mkpart root 1025 100%
 parted --script "${DEV}" set 1 esp on
 
-# Format partitions
+# Get parition devpaths
 DEVS=($(lsblk -np -x PATH -o PATH "$DEV"))
 ESP_DEV=${DEVS[1]}
-ROOT_DEV=${DEVS[2]}
+CRYPT_DEV=${DEVS[2]}
 
+# Format the EFI partition
 mkfs.fat -F 32 -n ESP "$ESP_DEV"
-mkfs.btrfs -f -L ROOT "$ROOT_DEV"
+
+# Format LUKS partition
+echo -n "$PASSWORD" | cryptsetup luksFormat --type luks2 --key-file - "$CRYPT_DEV"
+
+# Open the LUKS volume
+echo -n "$PASSWORD" | cryptsetup open --key-file - "$CRYPT_DEV" cryptroot
+
+# Format the opened LUKS volume
+mkfs.btrfs -f -L ROOT /dev/mapper/cryptroot
 
 # Create btrfs subvols
-mount "$ROOT_DEV" "$ROOT"
+mount /dev/mapper/cryptroot "$ROOT"
 btrfs sub create "${ROOT}/@arch_root"
 btrfs sub create "${ROOT}/@home"
 umount "$ROOT"
 
-# Generate fstab
+# Read partition UUIDs
 partprobe
 UUIDS=($(lsblk -np -x PATH -o UUID,TYPE "$DEV" | awk 'NF==2 && $2 == "part" {print $1}'))
 ESP_UUID=${UUIDS[0]}
-ROOT_UUID=${UUIDS[1]}
-sed "s/ESPDEV/UUID=${ESP_UUID}/g;s/ROOTDEV/UUID=${ROOT_UUID}/g" fstab.in > fstab
+CRYPT_UUID=${UUIDS[1]}
+
+# Generate fstab
+sed "s/ESPDEV/UUID=${ESP_UUID}/g" fstab.in > fstab
 
 # Mount partitions & install fstab
 mount / --target-prefix "$ROOT" --fstab ./fstab
@@ -44,7 +55,7 @@ cp ./fstab "${ROOT}/etc/"
 
 # Install kernel cmdline
 mkdir "${ROOT}/etc/cmdline.d"
-sed "s/ROOTDEV/UUID=${ROOT_UUID}/g" cmdline.d/root.conf.in > "${ROOT}/etc/cmdline.d/root.conf"
+sed "s/CRYPTDEV/UUID=${CRYPT_UUID}/g" cmdline.d/root.conf.in > "${ROOT}/etc/cmdline.d/root.conf"
 
 # Bootstrap
 pacstrap "$ROOT" base $(find packages.d -exec cat {} + | xargs)
@@ -71,8 +82,8 @@ echo LANG=en_US.UTF-8 > /etc/locale.conf
 
 bootctl install
 
-# Use Plymouth for boot splash
-sudo sed -i '/^HOOKS/s/block/& plymouth/' /etc/mkinitcpio.conf
+# Add mkinitcpio hooks after block hook
+sudo sed -i '/^HOOKS/s/block/& plymouth encrypt/' /etc/mkinitcpio.conf
 
 # Enable UKI generation
 sed -i '/^#\(default\|fallback\)_uki/s/^#//g' /etc/mkinitcpio.d/linux.preset
