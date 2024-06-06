@@ -13,20 +13,29 @@ blkdiscard -f "${DEV}"
 parted --script "${DEV}" mklabel gpt
 parted --script -a optimal "${DEV}" unit MiB mkpart esp fat32 1 1025
 parted --script -a optimal "${DEV}" unit MiB mkpart swap 1025 17408  # 16GB swap
-parted --script -a optimal "${DEV}" unit MiB mkpart root btrfs 17408 100%
+parted --script -a optimal "${DEV}" unit MiB mkpart cryptroot 17408 100%
 parted --script "${DEV}" set 1 esp on
 
 # Format partitions
 DEVS=($(lsblk -np -x PATH -o PATH,TYPE "$DEV" | awk 'NF==2 && $2 == "part" {print $1}'))
 ESP_DEV=${DEVS[0]}
 SWAP_DEV=${DEVS[1]}
-ROOT_DEV=${DEVS[2]}
+CRYPT_DEV=${DEVS[2]}
 
+# Format the EFI partition
 mkfs.fat -F 32 -n ESP "$ESP_DEV"
-mkfs.btrfs -f -L ROOT "$ROOT_DEV"
+
+# Format LUKS partition
+echo -n "$PASSWORD" | cryptsetup luksFormat --type luks2 --key-file - "$CRYPT_DEV"
+
+# Open the LUKS volume
+echo -n "$PASSWORD" | cryptsetup open --key-file - "$CRYPT_DEV" cryptroot
+
+# Format the opened LUKS volume
+mkfs.btrfs -f -L ROOT /dev/mapper/cryptroot
 
 # Create btrfs subvols
-mount "$ROOT_DEV" "$ROOT"
+mount /dev/mapper/cryptroot "$ROOT"
 btrfs sub create "${ROOT}/@arch_root"
 btrfs sub create "${ROOT}/@home"
 umount "$ROOT"
@@ -34,8 +43,7 @@ umount "$ROOT"
 # Generate fstab
 partprobe
 ESP_UUID=$(blkid -s UUID -o value "$ESP_DEV")
-ROOT_UUID=$(blkid -s UUID -o value "$ROOT_DEV")
-sed "s|ESPDEV|UUID=${ESP_UUID}|g;s|SWAPDEV|/dev/mapper/cryptswap|g;s|ROOTDEV|UUID=${ROOT_UUID}|g" fstab.in > fstab
+sed "s|ESPDEV|UUID=${ESP_UUID}|g;s|SWAPDEV|/dev/mapper/cryptswap|g;s|ROOTDEV|/dev/mapper/cryptroot|g" fstab.in > fstab
 
 # Mount partitions & install fstab
 mount / --target-prefix "$ROOT" --fstab ./fstab
@@ -47,9 +55,13 @@ cp ./fstab "${ROOT}/etc/"
 SWAP_PARTUUID=$(blkid -s PARTUUID -o value "$SWAP_DEV")
 sed "s/SWAPDEV/PARTUUID=${SWAP_PARTUUID}/g" crypttab.in > "${ROOT}/etc/crypttab"
 
+# Install crypttab.initramfs
+CRYPT_UUID=$(blkid -s UUID -o value "$CRYPT_DEV")
+sed "s/CRYPTDEV/UUID=${CRYPT_UUID}/g" crypttab.initramfs.in > "${ROOT}/etc/crypttab.initramfs"
+
 # Install kernel cmdline
 mkdir "${ROOT}/etc/cmdline.d"
-sed "s/ROOTDEV/UUID=${ROOT_UUID}/g" cmdline.d/root.conf.in > "${ROOT}/etc/cmdline.d/root.conf"
+sed "s|ROOTDEV|/dev/mapper/cryptroot|g" cmdline.d/root.conf.in > "${ROOT}/etc/cmdline.d/root.conf"
 
 # Bootstrap
 pacstrap "$ROOT" base $(find packages.d -exec cat {} + | xargs)
@@ -82,6 +94,9 @@ sudo sed -i '/^HOOKS/s/keymap consolefont/sd-vconsole/' /etc/mkinitcpio.conf
 
 # Use Plymouth for boot splash
 sudo sed -i '/^HOOKS/s/block/& plymouth/' /etc/mkinitcpio.conf
+
+# Use systemd-cryptsetup-generator
+sudo sed -i '/^HOOKS/s/filesystems/sd-encrypt &/' /etc/mkinitcpio.conf
 
 # Enable UKI generation
 sed -i '/^#\(default\|fallback\)_uki/s/^#//g' /etc/mkinitcpio.d/linux.preset
