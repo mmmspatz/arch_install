@@ -55,6 +55,9 @@ cat << EOF >> "${ROOT}/etc/pacman.conf"
 Include = /etc/pacman.d/mirrorlist
 EOF
 
+# Use systemd-resolved stub-resolve.conf
+ln -sf ../run/systemd/resolve/stub-resolv.conf "${ROOT}/etc/resolv.conf"
+
 # Finish install in chroot
 arch-chroot "$ROOT" << EOF
 pacman --noconfirm -Syyu
@@ -90,7 +93,6 @@ systemctl enable power-profiles-daemon.service
 systemctl --global enable wireplumber.service
 
 systemctl enable systemd-resolved.service
-ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
 
 useradd -m -G adm,wheel,uucp,sys,docker $USER
