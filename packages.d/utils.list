@@ -18,5 +18,6 @@ tcpdump
 vim
 arch-install-scripts
 bash-completion
-power-profiles-daemon
 usbutils
+nfs-utils
+samba

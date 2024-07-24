@@ -49,12 +49,6 @@ sed "s/ROOTDEV/UUID=${ROOT_UUID}/g" cmdline.d/root.conf.in > "${ROOT}/etc/cmdlin
 # Bootstrap
 pacstrap "$ROOT" base $(find packages.d -exec cat {} + | xargs)
 
-#enable multilib
-cat << EOF >> "${ROOT}/etc/pacman.conf"
-[multilib]
-Include = /etc/pacman.d/mirrorlist
-EOF
-
 # Use systemd-resolved stub-resolve.conf
 ln -sf ../run/systemd/resolve/stub-resolv.conf "${ROOT}/etc/resolv.conf"
 
@@ -82,15 +76,10 @@ mkinitcpio -p linux
 echo mspatz-desktop > /etc/hostname
 
 systemctl enable sshd.service
-systemctl enable NetworkManager.service
-systemctl enable gdm.service
-systemctl enable bluetooth.service
 systemctl enable systemd-timesyncd.service
 systemctl enable docker.service
 systemctl enable libvirtd.service
 systemctl enable power-profiles-daemon.service
-
-systemctl --global enable wireplumber.service
 
 systemctl enable systemd-resolved.service
 
