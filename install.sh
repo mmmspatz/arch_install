@@ -79,7 +79,6 @@ systemctl enable sshd.service
 systemctl enable systemd-timesyncd.service
 systemctl enable docker.service
 systemctl enable libvirtd.service
-systemctl enable power-profiles-daemon.service
 
 systemctl enable systemd-resolved.service
 
