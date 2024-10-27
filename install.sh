@@ -73,7 +73,7 @@ sed -i '/^#\(default\|fallback\)_uki/s/^#//g' /etc/mkinitcpio.d/linux.preset
 sed -i '/^\(default\|fallback\)_image/s/^/#/g' /etc/mkinitcpio.d/linux.preset
 mkinitcpio -p linux
 
-echo mspatz-desktop > /etc/hostname
+echo nas > /etc/hostname
 
 systemctl enable sshd.service
 systemctl enable systemd-timesyncd.service
