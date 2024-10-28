@@ -21,3 +21,5 @@ bash-completion
 usbutils
 nfs-utils
 samba
+libvirt
+qemu-base
