@@ -5,3 +5,5 @@ ESPDEV	/efi	vfat	rw,umask=0077,noexec,nosuid,nodev	0 2
 ROOTDEV	/home	btrfs	noatime,compress=zstd,subvol=/@home	0 0
 
 ROOTDEV	/mnt/btrfs_root	btrfs	subvolid=5	0 0
+
+SWAPDEV	none	swap	defaults	0 0

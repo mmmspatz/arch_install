@@ -12,13 +12,15 @@ read -p "Password: " -s PASSWORD
 blkdiscard -f "${DEV}"
 parted --script "${DEV}" mklabel gpt
 parted --script -a optimal "${DEV}" unit MiB mkpart esp fat32 1 1025
-parted --script -a optimal "${DEV}" unit MiB mkpart root btrfs 1025 100%
+parted --script -a optimal "${DEV}" unit MiB mkpart swap 1025 17408  # 16GB swap
+parted --script -a optimal "${DEV}" unit MiB mkpart root btrfs 17408 100%
 parted --script "${DEV}" set 1 esp on
 
 # Format partitions
 DEVS=($(lsblk -np -x PATH -o PATH,TYPE "$DEV" | awk 'NF==2 && $2 == "part" {print $1}'))
 ESP_DEV=${DEVS[0]}
-ROOT_DEV=${DEVS[1]}
+SWAP_DEV=${DEVS[1]}
+ROOT_DEV=${DEVS[2]}
 
 mkfs.fat -F 32 -n ESP "$ESP_DEV"
 mkfs.btrfs -f -L ROOT "$ROOT_DEV"
@@ -33,13 +35,17 @@ umount "$ROOT"
 partprobe
 ESP_UUID=$(blkid -s UUID -o value "$ESP_DEV")
 ROOT_UUID=$(blkid -s UUID -o value "$ROOT_DEV")
-sed "s/ESPDEV/UUID=${ESP_UUID}/g;s/ROOTDEV/UUID=${ROOT_UUID}/g" fstab.in > fstab
+sed "s|ESPDEV|UUID=${ESP_UUID}|g;s|SWAPDEV|/dev/mapper/cryptswap|g;s|ROOTDEV|UUID=${ROOT_UUID}|g" fstab.in > fstab
 
 # Mount partitions & install fstab
 mount / --target-prefix "$ROOT" --fstab ./fstab
 mount -a --target-prefix "$ROOT" --fstab ./fstab -o X-mount.mkdir
 mkdir "${ROOT}/etc/"
 cp ./fstab "${ROOT}/etc/"
+
+# Install crypttab
+SWAP_PARTUUID=$(blkid -s PARTUUID -o value "$SWAP_DEV")
+sed "s/SWAPDEV/PARTUUID=${SWAP_PARTUUID}/g" crypttab.in > "${ROOT}/etc/crypttab"
 
 # Install kernel cmdline
 mkdir "${ROOT}/etc/cmdline.d"
