@@ -1,1 +1,1 @@
-root=ROOTDEV rw rootflags=subvol=@arch_root quiet splash
+root=ROOTDEV ro rootflags=subvol=@arch_root quiet splash
