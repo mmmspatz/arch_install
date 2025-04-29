@@ -71,6 +71,10 @@ echo LANG=en_US.UTF-8 > /etc/locale.conf
 
 bootctl install
 
+# Use systemd init instead of busybox
+sudo sed -i '/^HOOKS/s/base udev/systemd/' /etc/mkinitcpio.conf
+sudo sed -i '/^HOOKS/s/keymap consolefont/sd-vconsole/' /etc/mkinitcpio.conf
+
 # Use Plymouth for boot splash
 sudo sed -i '/^HOOKS/s/block/& plymouth/' /etc/mkinitcpio.conf
 
