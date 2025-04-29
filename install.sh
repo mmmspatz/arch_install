@@ -11,8 +11,8 @@ read -p "Password: " -s PASSWORD
 # Create partitions
 blkdiscard -f "${DEV}"
 parted --script "${DEV}" mklabel gpt
-parted --script -a optimal "${DEV}" unit MiB mkpart esp fat32 1 513
-parted --script -a optimal "${DEV}" unit MiB mkpart root btrfs 513 100%
+parted --script -a optimal "${DEV}" unit MiB mkpart esp fat32 1 1025
+parted --script -a optimal "${DEV}" unit MiB mkpart root btrfs 1025 100%
 parted --script "${DEV}" set 1 esp on
 
 # Format partitions
