@@ -20,3 +20,5 @@ arch-install-scripts
 bash-completion
 power-profiles-daemon
 usbutils
+libvirt
+qemu-base
