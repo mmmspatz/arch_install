@@ -16,9 +16,9 @@ parted --script -a optimal "${DEV}" unit MiB mkpart root btrfs 1025 100%
 parted --script "${DEV}" set 1 esp on
 
 # Format partitions
-DEVS=($(lsblk -np -x PATH -o PATH "$DEV"))
-ESP_DEV=${DEVS[1]}
-ROOT_DEV=${DEVS[2]}
+DEVS=($(lsblk -np -x PATH -o PATH,TYPE "$DEV" | awk 'NF==2 && $2 == "part" {print $1}'))
+ESP_DEV=${DEVS[0]}
+ROOT_DEV=${DEVS[1]}
 
 mkfs.fat -F 32 -n ESP "$ESP_DEV"
 mkfs.btrfs -f -L ROOT "$ROOT_DEV"
@@ -31,9 +31,8 @@ umount "$ROOT"
 
 # Generate fstab
 partprobe
-UUIDS=($(lsblk -np -x PATH -o UUID,TYPE "$DEV" | awk 'NF==2 && $2 == "part" {print $1}'))
-ESP_UUID=${UUIDS[0]}
-ROOT_UUID=${UUIDS[1]}
+ESP_UUID=$(blkid -s UUID -o value "$ESP_DEV")
+ROOT_UUID=$(blkid -s UUID -o value "$ROOT_DEV")
 sed "s/ESPDEV/UUID=${ESP_UUID}/g;s/ROOTDEV/UUID=${ROOT_UUID}/g" fstab.in > fstab
 
 # Mount partitions & install fstab
